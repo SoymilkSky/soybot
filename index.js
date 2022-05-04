@@ -277,10 +277,15 @@ client.on('interactionCreate', async (interaction) => {
             { name: 'id', value: pokeData.fields[0].value },
           )
           .setThumbnail(pokeData.thumbnail.url);
-        interaction.reply({ embeds: [pokeEmbed], components: [row] })
+        interaction.reply({ embeds: [pokeEmbed], components: [row], ephemeral: true })
           .then(() => {
             setTimeout(() => {
-              interaction.editReply({ embeds: [pokeEmbed], components: [] });
+              row.components.pop();
+              row.comonents[0]
+                .setLabel('interaction timed out')
+                .setStyle('SECONDARY')
+                .setDisabled(true);
+              interaction.editReply({ embeds: [pokeEmbed], components: [row] });
             }, 60000);
           });
       })
@@ -308,21 +313,22 @@ client.on('interactionCreate', async (interaction) => {
       name: message.embeds[0].title,
       pokeData: message.embeds[0],
     })
-      .then((res) => {
+      .then(async (res) => {
         log(`successfully added ${res.name} to pokedex`);
 
         interaction.component
           .setStyle('SUCCESS')
           .setLabel('Pokemon added to your pokedex')
           .setDisabled(true);
-        interaction.update({
+
+        await interaction.update({
+          content: `added to <@${user.id}> 's pokedex`,
           components: [new MessageActionRow()
             .addComponents(interaction.component)],
         });
       })
       .catch((err) => log(err));
   } else if (customId === 'removefrompokedex') {
-    // add in user verification
     const name = message.embeds[0].fields[0].value;
 
     pokedexCommands.removeEntry(user.id, name)
