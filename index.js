@@ -1,3 +1,4 @@
+/* eslint-disable no-promise-executor-return */
 /* eslint-disable no-new */
 /* eslint-disable import/extensions */
 /* eslint-disable global-require */
@@ -8,15 +9,14 @@ import Pokedex from 'pokedex-promise-v2';
 import {
   Client, Intents, Constants, MessageEmbed, MessageActionRow, MessageButton,
 } from 'discord.js';
-// import fs from 'fs';
 import dotenv from 'dotenv';
 import db from './database/index.js';
 import pokedexCommands from './database/controllers/pokedex.js';
 import typeChart from './typeChartDef.js';
 
-// import handler from './command-handler.js';
-
 dotenv.config();
+
+const log = (arg) => console.log(arg);
 
 // Create a new client instance
 const client = new Client({
@@ -31,7 +31,7 @@ const pokedex = new Pokedex();
 
 // When the client is ready, run this code (only once)
 client.once('ready', () => {
-  console.log('The bot is up and running!');
+  log('The bot is up and running!');
 
   // slash commands
   const guild = client.guilds.cache.get(process.env.testGuildId);
@@ -128,7 +128,6 @@ client.on('interactionCreate', async (interaction) => {
 
     await interaction.deferReply({});
 
-    // eslint-disable-next-line no-promise-executor-return
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
     await interaction.editReply({
@@ -246,18 +245,43 @@ client.on('interactionCreate', async (interaction) => {
         }
       })
       .catch((err) => {
-        console.log(err);
+        log(err);
         interaction.reply({ content: 'unable to get your pokedex' });
       });
   } else if (commandName === 'removepokemon') {
     const name = options.get('name');
-    pokedexCommands.removeEntry(user.id, name.value)
-      .then(() => {
-        interaction.reply({ content: `removed ${name.value} from your pokedex` });
+    pokedexCommands.getOne(user.id, name.value)
+      .then((data) => {
+        const pokeData = data[0].pokeData[0];
+
+        const row = new MessageActionRow()
+          .addComponents(
+            new MessageButton()
+              .setCustomId('removefrompokedex')
+              .setLabel('Remove this pokemon')
+              .setStyle('PRIMARY'),
+            new MessageButton()
+              .setCustomId('cancelremove')
+              .setLabel('Cancel')
+              .setStyle('DANGER'),
+          );
+
+        const pokeEmbed = new MessageEmbed()
+          .setColor('#ff0000')
+          .setTitle('Remove this pokemon?')
+          .addFields(
+            { name: 'Name', value: pokeData.title },
+            { name: 'id', value: pokeData.fields[0].value },
+          )
+          .setThumbnail(pokeData.thumbnail.url);
+        interaction.reply({ embeds: [pokeEmbed], components: [row] });
       })
       .catch((err) => {
-        console.log(err);
-        interaction.reply({ content: `${name.value} is not in your pokedex` });
+        log(err);
+        const errEmbed = new MessageEmbed()
+          .setColor('#ff0000')
+          .setTitle('you do not own that pokemon');
+        interaction.reply({ embeds: [errEmbed] });
       });
   } else if (commandName === 'jerry') {
     interaction.reply('You can\'t just call people the r word Jerry');
@@ -269,6 +293,7 @@ client.on('interactionCreate', async (interaction) => {
   if (!interaction.isButton()) return;
 
   const { customId, user, message } = interaction;
+  const name = message.embeds[0].fields[0].value;
 
   if (customId === 'addtopokedex') {
     pokedexCommands.addEntry({
@@ -276,11 +301,41 @@ client.on('interactionCreate', async (interaction) => {
       name: message.embeds[0].title,
       pokeData: message.embeds[0],
     })
-      .then((res) => console.log(`successfully added ${res.name} to pokedex`));
+      .then((res) => {
+        log(`successfully added ${res.name} to pokedex`);
 
+        interaction.component
+          .setStyle('SUCCESS')
+          .setLabel('Pokemon added to your pokedex')
+          .setDisabled(true);
+        interaction.update({
+          components: [new MessageActionRow()
+            .addComponents(interaction.component)],
+        });
+      })
+      .catch((err) => log(err));
+  } else if (customId === 'removefrompokedex') {
+    pokedexCommands.removeEntry(user.id, name)
+      .then((res) => {
+        log(res);
+
+        interaction.component
+          .setStyle('SUCCESS')
+          .setLabel('Removed')
+          .setDisabled(true);
+        interaction.update({
+          components: [new MessageActionRow()
+            .addComponents(interaction.component)],
+        });
+      })
+      .catch((err) => {
+        log(err);
+        interaction.reply({ content: `${name} is not in your pokedex` });
+      });
+  } else if (customId === 'cancelremove') {
     interaction.component
-      .setStyle('SUCCESS')
-      .setLabel('Pokemon added to your pokedex')
+      .setStyle('DANGER')
+      .setLabel('Canceled')
       .setDisabled(true);
     interaction.update({
       components: [new MessageActionRow()
