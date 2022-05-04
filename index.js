@@ -40,7 +40,7 @@ client.once('ready', () => {
   if (guild) {
     commands = guild.commands;
   } else {
-    commands = client.application?.commands;
+    commands = client.applichation?.commands;
   }
 
   commands?.create({
@@ -88,6 +88,19 @@ client.once('ready', () => {
   commands?.create({
     name: 'pokedex',
     description: 'Returns your pokedex',
+  });
+
+  commands?.create({
+    name: 'removepokemon',
+    description: 'Removes a Pokemon from your Pokedex',
+    options: [
+      {
+        name: 'name',
+        description: 'The name of the Pokemon you wish to remove',
+        required: true,
+        type: Constants.ApplicationCommandOptionTypes.STRING,
+      },
+    ],
   });
 
   commands?.create({
@@ -160,7 +173,7 @@ client.on('interactionCreate', async (interaction) => {
       );
       // .setImage(pokeData?.sprites.front_default);
 
-    await interaction.reply({ embeds: [pokeEmbed] });
+    interaction.reply({ embeds: [pokeEmbed] });
   } else if (commandName === 'randompokemon') {
     const row = new MessageActionRow()
       .addComponents(
@@ -209,28 +222,42 @@ client.on('interactionCreate', async (interaction) => {
   } else if (commandName === 'pokedex') {
     pokedexCommands.getPokedex(user.id)
       .then((data) => {
-        const dexObj = {};
-        data.forEach((entry) => {
-          dexObj[entry.pokeData[0].fields[0].value] = entry.pokeData[0].title;
-        });
+        if (data.length !== 0) {
+          const dexObj = {};
+          data.forEach((entry) => {
+            dexObj[entry.pokeData[0].fields[0].value] = entry.pokeData[0].title;
+          });
 
-        const displayArr = [];
-        Object.entries(dexObj).forEach((entry) => {
-          displayArr.push(`#${entry[0]}: ${entry[1]}`);
-        });
+          const displayArr = [];
+          Object.entries(dexObj).forEach((entry) => {
+            displayArr.push(`#${entry[0]}: ${entry[1]}`);
+          });
 
-        const pokedexEmbed = new MessageEmbed()
-          .setColor('#ff0000')
-          .setTitle('Pokedex')
-          .setThumbnail('https://static.wikia.nocookie.net/leonhartimvu/images/3/37/RG_Pok%C3%A9dex.png/revision/latest?cb=20180721122026')
-          .addFields(
-            { name: 'Entries', value: displayArr.join('\n') },
-          );
-        interaction.reply({ embeds: [pokedexEmbed] });
+          const pokedexEmbed = new MessageEmbed()
+            .setColor('#ff0000')
+            .setTitle('Pokedex')
+            .setThumbnail('https://static.wikia.nocookie.net/leonhartimvu/images/3/37/RG_Pok%C3%A9dex.png/revision/latest?cb=20180721122026')
+            .addFields(
+              { name: 'Entries', value: displayArr.join('\n') },
+            );
+          interaction.reply({ embeds: [pokedexEmbed] });
+        } else {
+          interaction.reply({ content: 'your pokedex is empty' });
+        }
       })
       .catch((err) => {
         console.log(err);
-        interaction.reply({ content: 'unable to get your pokedex or your pokedex is empty' });
+        interaction.reply({ content: 'unable to get your pokedex' });
+      });
+  } else if (commandName === 'removepokemon') {
+    const name = options.get('name');
+    pokedexCommands.removeEntry(user.id, name.value)
+      .then(() => {
+        interaction.reply({ content: `removed ${name.value} from your pokedex` });
+      })
+      .catch((err) => {
+        console.log(err);
+        interaction.reply({ content: `${name.value} is not in your pokedex` });
       });
   } else if (commandName === 'jerry') {
     interaction.reply('You can\'t just call people the r word Jerry');
@@ -244,11 +271,12 @@ client.on('interactionCreate', async (interaction) => {
   const { customId, user, message } = interaction;
 
   if (customId === 'addtopokedex') {
-    await pokedexCommands.addEntry({
+    pokedexCommands.addEntry({
       userId: user.id,
+      name: message.embeds[0].title,
       pokeData: message.embeds[0],
     })
-      .then((res) => console.log(`successfully added to ${res.userId}'s pokedex`));
+      .then((res) => console.log(`successfully added ${res.name} to pokedex`));
 
     interaction.component
       .setStyle('SUCCESS')
