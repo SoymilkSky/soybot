@@ -1,9 +1,3 @@
-/* eslint-disable no-promise-executor-return */
-/* eslint-disable no-new */
-/* eslint-disable import/extensions */
-/* eslint-disable global-require */
-/* eslint-disable import/no-dynamic-require */
-
 // Require the necessary discord.js classes
 import Pokedex from 'pokedex-promise-v2';
 import {
@@ -34,7 +28,7 @@ client.once('ready', () => {
   log('The bot is up and running!');
 
   // slash commands
-  const guild = client.guilds.cache.get(process.env.testGuildId);
+  const guild = client.guilds.cache.get(process.env.guildId);
   let commands;
 
   if (guild) {
@@ -217,7 +211,16 @@ client.on('interactionCreate', async (interaction) => {
         { name: 'type effectiveness', value: `${displayChart.join('\n')}`, inline: true },
       );
 
-    interaction.reply({ embeds: [pokeEmbed], components: [row] });
+    interaction.reply({ embeds: [pokeEmbed], components: [row] })
+      .then(() => {
+        setTimeout(() => {
+          row.components[0]
+            .setLabel('no longer obtainable')
+            .setStyle('DANGER')
+            .setDisabled(true);
+          interaction.editReply({ embeds: [pokeEmbed], components: [row] });
+        }, 60000);
+      });
   } else if (commandName === 'pokedex') {
     pokedexCommands.getPokedex(user.id)
       .then((data) => {
@@ -274,7 +277,12 @@ client.on('interactionCreate', async (interaction) => {
             { name: 'id', value: pokeData.fields[0].value },
           )
           .setThumbnail(pokeData.thumbnail.url);
-        interaction.reply({ embeds: [pokeEmbed], components: [row] });
+        interaction.reply({ embeds: [pokeEmbed], components: [row] })
+          .then(() => {
+            setTimeout(() => {
+              interaction.editReply({ embeds: [pokeEmbed], components: [] });
+            }, 60000);
+          });
       })
       .catch((err) => {
         log(err);
@@ -293,7 +301,6 @@ client.on('interactionCreate', async (interaction) => {
   if (!interaction.isButton()) return;
 
   const { customId, user, message } = interaction;
-  const name = message.embeds[0].fields[0].value;
 
   if (customId === 'addtopokedex') {
     pokedexCommands.addEntry({
@@ -315,6 +322,9 @@ client.on('interactionCreate', async (interaction) => {
       })
       .catch((err) => log(err));
   } else if (customId === 'removefrompokedex') {
+    // add in user verification
+    const name = message.embeds[0].fields[0].value;
+
     pokedexCommands.removeEntry(user.id, name)
       .then((res) => {
         log(res);
@@ -333,6 +343,7 @@ client.on('interactionCreate', async (interaction) => {
         interaction.reply({ content: `${name} is not in your pokedex` });
       });
   } else if (customId === 'cancelremove') {
+    // add in user verification
     interaction.component
       .setStyle('DANGER')
       .setLabel('Canceled')
@@ -347,6 +358,7 @@ client.on('interactionCreate', async (interaction) => {
 // responds to messages
 client.on('messageCreate', (message) => {
   const msg = message.content.toLowerCase().split(' ');
+
   if (message.content.toLowerCase() === 'good morning botmilk') {
     message.reply({
       content: `good morning ${message.author}!`,

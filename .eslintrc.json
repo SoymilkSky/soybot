@@ -12,5 +12,12 @@
         "ecmaVersion": "latest"
     },
     "rules": {
+        "no-console": "off",
+        "no-promise-executor-return": "off",
+        "no-new": "off",
+        "import/extensions": "off",
+        "global-require": "off",
+        "import/no-dynamic-require": "off",
+        "no-unused-vars": "off"
     }
 }
