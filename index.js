@@ -34,8 +34,10 @@ client.once('ready', () => {
   log('The bot is up and running!');
 
   // slash commands
-  const guild = client.guilds.cache.get(process.env.testGuildId);
+  const guild = client.guilds.cache.get(process.env.demoGuildId);
   let commands;
+
+  // const commands = client.application?.commands;
 
   if (guild) {
     commands = guild.commands;
@@ -331,7 +333,7 @@ client.on('interactionCreate', async (interaction) => {
         log(err);
         const errEmbed = new MessageEmbed()
           .setColor('#ff0000')
-          .setTitle(`${movieName.value} was not found`);
+          .setTitle(`No movie by the name ${movieName.value} was not found`);
         interaction.reply({ embeds: [errEmbed] });
       });
   } else if (commandName === 'jerry') {
