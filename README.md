@@ -1,2 +1,2 @@
-# soyboy
-a bot
+# soybot
+a discord bot

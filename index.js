@@ -3,9 +3,11 @@ import Pokedex from 'pokedex-promise-v2';
 import {
   Client, Intents, Constants, MessageEmbed, MessageActionRow, MessageButton,
 } from 'discord.js';
+import axios from 'axios';
 import dotenv from 'dotenv';
 import db from './database/index.js';
 import pokedexCommands from './database/controllers/pokedex.js';
+import movieCommands from './database/controllers/movies.js';
 import typeChart from './typeChartDef.js';
 
 dotenv.config();
@@ -23,12 +25,16 @@ const client = new Client({
 
 const pokedex = new Pokedex();
 
+const sleep = (ms) => new Promise((resolve) => {
+  setTimeout(resolve, ms);
+});
+
 // When the client is ready, run this code (only once)
 client.once('ready', () => {
   log('The bot is up and running!');
 
   // slash commands
-  const guild = client.guilds.cache.get(process.env.guildId);
+  const guild = client.guilds.cache.get(process.env.testGuildId);
   let commands;
 
   if (guild) {
@@ -91,6 +97,19 @@ client.once('ready', () => {
       {
         name: 'name',
         description: 'The name of the Pokemon you wish to remove',
+        required: true,
+        type: Constants.ApplicationCommandOptionTypes.STRING,
+      },
+    ],
+  });
+
+  commands?.create({
+    name: 'findmovie',
+    description: 'finds a movie and returns information about it',
+    options: [
+      {
+        name: 'name',
+        description: 'the name of the movie',
         required: true,
         type: Constants.ApplicationCommandOptionTypes.STRING,
       },
@@ -164,7 +183,6 @@ client.on('interactionCreate', async (interaction) => {
       .addFields(
         { name: 'type effectiveness', value: `${displayChart.join('\n')}`, inline: true },
       );
-      // .setImage(pokeData?.sprites.front_default);
 
     interaction.reply({ embeds: [pokeEmbed] });
   } else if (commandName === 'randompokemon') {
@@ -212,14 +230,9 @@ client.on('interactionCreate', async (interaction) => {
       );
 
     interaction.reply({ embeds: [pokeEmbed], components: [row] })
-      .then(() => {
-        setTimeout(() => {
-          row.components[0]
-            .setLabel('no longer obtainable')
-            .setStyle('DANGER')
-            .setDisabled(true);
-          interaction.editReply({ embeds: [pokeEmbed], components: [row] });
-        }, 60000);
+      .then(async () => {
+        await sleep(5000);
+        interaction.editReply({ embeds: [pokeEmbed], components: [] });
       });
   } else if (commandName === 'pokedex') {
     pokedexCommands.getPokedex(user.id)
@@ -278,15 +291,9 @@ client.on('interactionCreate', async (interaction) => {
           )
           .setThumbnail(pokeData.thumbnail.url);
         interaction.reply({ embeds: [pokeEmbed], components: [row], ephemeral: true })
-          .then(() => {
-            setTimeout(() => {
-              row.components.pop();
-              row.comonents[0]
-                .setLabel('interaction timed out')
-                .setStyle('SECONDARY')
-                .setDisabled(true);
-              interaction.editReply({ embeds: [pokeEmbed], components: [row] });
-            }, 60000);
+          .then(async () => {
+            await sleep(60000);
+            interaction.editReply({ embeds: [pokeEmbed], components: [], ephemeral: true });
           });
       })
       .catch((err) => {
@@ -294,6 +301,37 @@ client.on('interactionCreate', async (interaction) => {
         const errEmbed = new MessageEmbed()
           .setColor('#ff0000')
           .setTitle('you do not own that pokemon');
+        interaction.reply({ embeds: [errEmbed] });
+      });
+  } else if (commandName === 'findmovie') {
+    const movieName = options.get('name');
+
+    axios.get(`https://api.themoviedb.org/3/search/movie?api_key=${process.env.TMDB_KEY}&language=en-US&query=${movieName.value}`)
+      .then((searchResult) => searchResult.data.results[0].id)
+      .then((movieId) => axios.get(`https://api.themoviedb.org/3/movie/${movieId}?api_key=${process.env.TMDB_KEY}&language=en-US`))
+      .then((movieData) => {
+        const movie = movieData.data;
+        log(movie);
+        const movieEmbed = new MessageEmbed()
+          .setColor('#FFFF00')
+          .setTitle(movie.original_title)
+          .addFields(
+            { name: 'Release Date', value: `${movie.release_date}`, inline: true },
+            { name: 'Runtime', value: `${movie.runtime} minutes`, inline: true },
+            { name: 'Rating', value: `${movie.vote_average} / 10`, inline: true },
+          )
+          .addFields(
+            { name: 'Description', value: `${movie.overview}` },
+          )
+          .setImage(`https://image.tmdb.org/t/p/w500/${movie.poster_path}`);
+
+        interaction.reply({ embeds: [movieEmbed] });
+      })
+      .catch((err) => {
+        log(err);
+        const errEmbed = new MessageEmbed()
+          .setColor('#ff0000')
+          .setTitle(`${movieName.value} was not found`);
         interaction.reply({ embeds: [errEmbed] });
       });
   } else if (commandName === 'jerry') {
@@ -349,7 +387,6 @@ client.on('interactionCreate', async (interaction) => {
         interaction.reply({ content: `${name} is not in your pokedex` });
       });
   } else if (customId === 'cancelremove') {
-    // add in user verification
     interaction.component
       .setStyle('DANGER')
       .setLabel('Canceled')

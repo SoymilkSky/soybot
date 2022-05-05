@@ -1,13 +1,13 @@
-const add = {
-  callback: (message, ...args) => {
-    let sum = 0;
+const { SlashCommandBuilder } = require('@discordjs/builders');
 
-    args.forEach((arg) => {
-      sum += Number(arg);
-    });
-
-    message.reply(`The sum is ${sum}`);
+export default {
+  data: new SlashCommandBuilder()
+    .setName('add')
+    .setDescription('adds two numbers')
+    .addUserOption((option) => { option.setName('num1').setDescription('the first number'); })
+    .addUserOption((option) => { option.setName('num2').setDescription('the second number'); }),
+  async execute(interaction) {
+    console.log(interaction);
+    await interaction.reply(`the sum is `);
   },
 };
-
-export default add;
