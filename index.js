@@ -34,20 +34,84 @@ client.once('ready', () => {
   log('The bot is up and running!');
 
   // slash commands
-  const guild = client.guilds.cache.get(process.env.demoGuildId);
+  const guild = client.guilds.cache.get(process.env.guildId);
   let commands;
-
-  // const commands = client.application?.commands;
 
   if (guild) {
     commands = guild.commands;
   } else {
     commands = client.applichation?.commands;
   }
+  // const commands = client.application?.commands;
 
   commands?.create({
     name: 'ping',
     description: 'Replies with pong',
+  });
+
+  commands?.create({
+    name: 'fire',
+    description: 'adds fire to your text',
+    options: [
+      {
+        name: 'string',
+        description: 'the thing u want to fire',
+        required: true,
+        type: Constants.ApplicationCommandOptionTypes.STRING,
+      },
+    ],
+  });
+
+  commands?.create({
+    name: 'eggplant',
+    description: 'eggplants a person',
+    options: [
+      {
+        name: 'string',
+        description: 'the thing u want to eggplant',
+        required: true,
+        type: Constants.ApplicationCommandOptionTypes.STRING,
+      },
+    ],
+  });
+
+  commands?.create({
+    name: 'bats',
+    description: 'adds bats to your text',
+    options: [
+      {
+        name: 'string',
+        description: 'the thing u want to bat',
+        required: true,
+        type: Constants.ApplicationCommandOptionTypes.STRING,
+      },
+    ],
+  });
+
+  commands?.create({
+    name: 'strawberry',
+    description: 'adds strawberries to your text',
+    options: [
+      {
+        name: 'string',
+        description: 'the thing u want to strawberry',
+        required: true,
+        type: Constants.ApplicationCommandOptionTypes.STRING,
+      },
+    ],
+  });
+
+  commands?.create({
+    name: 'strawjerry',
+    description: 'adds strawberries between words',
+    options: [
+      {
+        name: 'string',
+        description: 'the thing u want to strawberry',
+        required: true,
+        type: Constants.ApplicationCommandOptionTypes.STRING,
+      },
+    ],
   });
 
   commands?.create({
@@ -136,6 +200,37 @@ client.on('interactionCreate', async (interaction) => {
     interaction.reply({
       content: 'pong',
       ephemeral: true,
+    });
+  } else if (commandName === 'fire') {
+    const fire = options.get('string').value.replace(/\s/g, '').split('').join('🔥').replace(/^/, '🔥')
+      .concat('🔥');
+    interaction.reply({
+      content: fire,
+    });
+  } else if (commandName === 'eggplant') {
+    const fire = options.get('string').value.replace(/\s/g, '').split('').join('🍆').replace(/^/, '🍆')
+      .concat('🍆');
+    interaction.reply({
+      content: fire,
+    });
+  } else if (commandName === 'bats') {
+    const fire = options.get('string').value.replace(/\s/g, '').split('').join('🦇').replace(/^/, '🦇')
+      .concat('🦇');
+    interaction.reply({
+      content: fire,
+    });
+  } else if (commandName === 'strawberry') {
+    const fire = options.get('string').value.replace(/\s/g, '').split('').join('🍓').replace(/^/, '🍓')
+      .concat('🍓');
+    interaction.reply({
+      content: fire,
+    });
+  } else if (commandName === 'strawjerry') {
+    const fire = options.get('string').value.split(' ').join('🍓').replace(/^/, '🍓')
+      .concat('🍓')
+      .concat('<@76535312855076864>');
+    interaction.reply({
+      content: fire,
     });
   } else if (commandName === 'add') {
     const num1 = options.getNumber('num1');
@@ -233,7 +328,7 @@ client.on('interactionCreate', async (interaction) => {
 
     interaction.reply({ embeds: [pokeEmbed], components: [row] })
       .then(async () => {
-        await sleep(5000);
+        await sleep(60000);
         interaction.editReply({ embeds: [pokeEmbed], components: [] });
       });
   } else if (commandName === 'pokedex') {
@@ -380,6 +475,7 @@ client.on('interactionCreate', async (interaction) => {
           .setLabel('Removed')
           .setDisabled(true);
         interaction.update({
+          content: `removed ${name} from <@${user.id}> 's pokedex`,
           components: [new MessageActionRow()
             .addComponents(interaction.component)],
         });
@@ -394,6 +490,7 @@ client.on('interactionCreate', async (interaction) => {
       .setLabel('Canceled')
       .setDisabled(true);
     interaction.update({
+      content: 'canceled action',
       components: [new MessageActionRow()
         .addComponents(interaction.component)],
     });
